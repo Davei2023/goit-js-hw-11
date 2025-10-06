@@ -1,32 +1,46 @@
+// src/js/render-functions.js
 import SimpleLightbox from 'simplelightbox';
 
 const galleryEl = document.querySelector('.gallery');
-const loaderBackdropEl = document.querySelector('.loader-backdrop');
+const loaderEl = document.querySelector('.loader-container');
 
-const lightbox = new SimpleLightbox('.gallery a', {
-  captions: true,
+// один экземпляр на всю страницу
+const lightbox = new SimpleLightbox('.gallery-item a', {
   captionsData: 'alt',
-  captionDelay: 200,
-  animationSlide: false,
-  showCounter: false,
-  overlayOpacity: 0.7,
-  docClose: true,
-  history: true,
+  captionDelay: 250,
 });
 
-export function createGallery(images) {
-  const markup = images
-    .map(({ webformatURL, largeImageURL, tags }) => `
+export function createMarkup(hits = []) {
+  return hits
+    .map(
+      ({
+        webformatURL,
+        largeImageURL,
+        tags,
+        likes,
+        views,
+        comments,
+        downloads,
+      }) => `
       <li class="gallery-item">
-        <a href="${largeImageURL}">
-          <img src="${webformatURL}" alt="${escapeHtml(tags || '')}" loading="lazy" />
+        <a class="gallery-link" href="${largeImageURL}">
+          <img class="gallery-image" src="${webformatURL}" alt="${escapeHtml(tags || '')}" loading="lazy" />
+          <p class="gallery-descr">
+            Likes: <span class="descr-span">${likes}</span>
+            &nbsp; Views: <span class="descr-span">${views}</span>
+            &nbsp; Comments: <span class="descr-span">${comments}</span>
+            &nbsp; Downloads: <span class="descr-span">${downloads}</span>
+          </p>
         </a>
-      </li>
-    `)
+      </li>`
+    )
     .join('');
+}
 
-  galleryEl.insertAdjacentHTML('beforeend', markup);
-
+export function createGallery(hits = [], { replace = true } = {}) {
+  const markup = createMarkup(hits);
+  if (replace) galleryEl.innerHTML = markup;
+  else galleryEl.insertAdjacentHTML('beforeend', markup);
   lightbox.refresh();
 }
 
@@ -34,15 +48,14 @@ export function clearGallery() {
   galleryEl.innerHTML = '';
 }
 
-export function showLoader() {
-  loaderBackdropEl.classList.remove('is-hidden');
+export function showLoader(state = true) {
+  loaderEl.style.display = state ? 'inline-block' : 'none';
 }
 
 export function hideLoader() {
-  loaderBackdropEl.classList.add('is-hidden');
+  loaderEl.style.display = 'none';
 }
 
-// безопасный alt
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, s => ({
     '&': '&amp;',

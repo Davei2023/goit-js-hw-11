@@ -1,66 +1,118 @@
-// src/main.js (фрагмент)
-import iziToast from 'izitoast';
-import { getImagesByQuery } from './js/pixabay-api';
-import { createGallery, clearGallery, showLoader, hideLoader } from './js/render-functions';
-import 'izitoast/dist/css/iziToast.min.css';
-import 'simplelightbox/dist/simple-lightbox.min.css';
-import './css/styles.css';
-const form = document.querySelector('.form');
-const input = form.elements['search-text'];
+// Описаний у документації
+import iziToast from "izitoast";
+// Додатковий імпорт стилів
+import "izitoast/dist/css/iziToast.min.css";
 
-form.addEventListener('submit', onSearch);
+// Описаний у документації
+import SimpleLightbox from "simplelightbox";
+// Додатковий імпорт стилів
+import "simplelightbox/dist/simple-lightbox.min.css";
 
-function onSearch(e) {
-  e.preventDefault();
-  const query = input.value.trim();
+const refs = {
+    form: document.querySelector('.search-form'),
+    input: document.querySelector('.input-form'),
+    gallery: document.querySelector('.gallery'),
+    loader: document.querySelector('.loader-container'),
+    searchBtn: document.querySelector('.search-btn'),
+  };
+  
+  const BASE_URL = 'https://pixabay.com/api/';
+  const API_KEY = '52640263-ce01b15f2958a6288c5805755';
+  
+  refs.form.addEventListener('submit', event => {
+    event.preventDefault();
+    const query = refs.form.query.value.trim();
+  
+    if (!query) {
+      createMessage(
+        `The search field can't be empty! Please, enter your request!`
+      );
+      return;
+    }
+    const url = `${BASE_URL}?key=${API_KEY}&q=${query}&image_type=photo&orientation=horizontal&safesearch=true`;
+  
+    fetchImages(url)
+      .then(data => {
+        if (data.hits.length === 0) {
+          createMessage(
+            `Sorry, there are no images matching your search query. Please, try again!`
+          );
+          showLoader(false);
+        }
+  
+        refs.gallery.innerHTML = createMarkup(data.hits);
 
-  if (!query) {
-    iziToast.warning({ message: 'Введи ключове слово для пошуку.', position: 'topRight' });
-    return;
-  }
-  if (query.length > 100) {
-    iziToast.warning({ message: 'Пошуковий запит має бути ≤ 100 символів.', position: 'topRight' });
-    return;
-  }
+        showLoader(false);
 
-  clearGallery();
-  showLoader();
-
-  const options = { page: 1, perPage: 20, lang: 'en' };
-
-  getImagesByQuery(query, options)
-    .then(({ hits }) => {
-      if (!Array.isArray(hits) || hits.length === 0) {
-        iziToast.info({
-          message: 'Sorry, there are no images matching your search query. Please try again!',
-          position: 'topRight',
+        const simplyGallery = new SimpleLightbox('.gallery-item a', {
+          captionsData: 'alt',
+          captionDelay: 250,
         });
-        return;
+        refs.form.reset();
+      })
+      .catch(error => console.error(error));
+  });
+  
+  function fetchImages(url) {
+  
+    showLoader(true);
+
+    return fetch(url).then(resp => {
+      if (!resp.ok) {
+        throw new Error(resp.ststusText);
       }
-      createGallery(hits);
-    })
-    .catch(err => {
-  const status = err?.response?.status;
-  if (status === 429) {
-    const reset = Number(err.response.headers?.['x-ratelimit-reset']);
-    iziToast.error({
-      title: 'Ліміт запитів',
-      message: `API rate limit exceeded. ${Number.isFinite(reset) ? `Спробуй через ~${Math.ceil(reset)} сек.` : ''}`,
-      position: 'topRight',
-    });
-  } else if (status === 401 || status === 403) {
-    iziToast.error({
-      title: 'API ключ',
-      message: 'Невірний або відсутній VITE_PIXABAY_API_KEY у .env',
-      position: 'topRight',
-    });
-  } else {
-    iziToast.error({
-      title: 'Помилка',
-      message: 'Щось пішло не так. Спробуй пізніше.',
-      position: 'topRight',
+      return resp.json();
     });
   }
-})
-    .finally(hideLoader);
-}
+  
+  function createMarkup(hits) {
+    return hits
+      .map(
+        ({
+          webformatURL,
+          largeImageURL,
+          tags,
+          likes,
+          views,
+          comments,
+          downloads,
+        }) =>
+          `<li class="gallery-item">
+
+    <a class="gallery-link" href="${largeImageURL}">
+      <img
+        class="gallery-image"
+        src="${webformatURL}"
+        alt="${tags}"
+      />
+
+      <p class="gallery-descr">Likes: <span class="descr-span">${likes}</span> 
+      Views: <span class="descr-span">${views}</span> 
+      Comments: <span class="descr-span">${comments}</span> 
+      Downloads: <span class="descr-span">${downloads}</span></p>
+
+    </a>
+  </li>`
+      )
+      .join('');
+  }
+  
+  function createMessage(message) {
+    iziToast.show({
+      class: 'error-svg',
+      position: 'topRight',
+      icon: 'error-svg',
+      message: message,
+      maxWidth: '432',
+      messageColor: '#fff',
+      messageSize: '16px',
+      backgroundColor: '#EF4040',
+      close: false,
+      closeOnClick: true,
+    });
+  }
+  
+  function showLoader(state = true) {
+    refs.loader.style.display = !state ? 'none' : 'inline-block';
+    refs.searchBtn.disabled = state;
+  }

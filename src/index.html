@@ -1,26 +1,29 @@
-<!doctype html>
-<html lang="uk">
+<!DOCTYPE html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Search — HW 11</title>
+    <title>goit-js-hw-11</title>
+    <link rel="stylesheet" href="./css/styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1 class="title">Pixabay Image Search</h1>
+    <form class="search-form" autocomplete="on">
+      <label>
+        <input
+          class="search-inp"
+          type="text"
+          name="query"
+          placeholder="Search images..."
+        />
+      </label>
+      <button class="search-btn" type="submit">Search</button>
+    </form>
 
-  <form class="form" autocomplete="off">
-  <label>
-    <input type="text" name="search-text" placeholder="Search images..." required />
-  </label>
-  <button type="submit">Search</button>
-</form>
+    <ul class="gallery"></ul>
 
-      <ul class="gallery"></ul>
-    </main>
-
-    <div class="loader-backdrop is-hidden" aria-hidden="true" aria-live="polite">
-      <div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
+    <div class="loader-container">
+      <span class="loader"></span>
     </div>
 
     <script type="module" src="./main.js"></script>
