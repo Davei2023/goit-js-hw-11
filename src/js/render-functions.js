@@ -38,13 +38,11 @@ export function clearGallery() {
   galleryEl.innerHTML = '';
 }
 
-/** Показать текстовый лоадер (как в макете) */
 export function showLoader() {
   loaderEl.style.display = 'flex';
   loaderEl.innerHTML = `<p style="margin:24px 0 0; color:#6b7280">Loading images, please wait…</p>`;
 }
 
-/** Скрыть лоадер */
 export function hideLoader() {
   loaderEl.style.display = 'none';
   loaderEl.innerHTML = '';
