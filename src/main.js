@@ -1,13 +1,13 @@
 // src/main.js
 
-// Стили проекта и библиотек
+// Стили
 import './css/styles.css';
 import 'izitoast/dist/css/iziToast.min.css';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
 // JS
 import iziToast from 'izitoast';
-import { getImagesByQuery } from './js/pixabay-api';
+import { getImagesByQuery /*, buildUrl*/ } from './js/pixabay-api';
 import {
   createGallery,
   clearGallery,
@@ -15,27 +15,20 @@ import {
   hideLoader,
 } from './js/render-functions';
 
-// --------- refs ----------
+
 const refs = {
   form: document.querySelector('.search-form'),
   gallery: document.querySelector('.gallery'),
-  loader: document.querySelector('.loader-container'),
   searchBtn: document.querySelector('.search-btn'),
 };
 
-// Guard: если разметки нет — ничего не делаем
-if (refs.form) {
-  refs.form.addEventListener('submit', onSubmit);
-}
+refs.form.addEventListener('submit', onSubmit);
 
-// --------- handlers ----------
 function onSubmit(e) {
   e.preventDefault();
 
-  // берём значение из <input name="query">
   const query = refs.form.elements.query.value.trim();
 
-  // валидация по ТЗ
   if (!query) {
     createMessage(`The search field can't be empty! Please, enter your request!`);
     return;
@@ -45,49 +38,47 @@ function onSubmit(e) {
     return;
   }
 
-  // подготовка UI
   clearGallery();
   showLoader();
   refs.searchBtn.disabled = true;
 
-  // запрос на бекенд
+  // console.log(buildUrl(query, { page: 1, perPage: 20, lang: 'en' }));
+
   getImagesByQuery(query, { page: 1, perPage: 20, lang: 'en' })
     .then(({ hits }) => {
       if (!Array.isArray(hits) || hits.length === 0) {
-        createMessage(
-          `Sorry, there are no images matching your search query. Please, try again!`
-        );
+        createMessage(`Sorry, there are no images matching your search query. Please, try again!`);
         return;
       }
-      // рендер + refresh() у SimpleLightbox происходит внутри createGallery
       createGallery(hits, { replace: true });
-
-      // очистим форму после успешной отрисовки
       refs.form.reset();
     })
-    .catch(err => {
-      const status = err?.response?.status;
-
-      if (status === 429) {
-        const reset = Number(err.response?.headers?.['x-ratelimit-reset']);
-        createMessage(
-          `API rate limit exceeded.${Number.isFinite(reset) ? ` Try again in ~${Math.ceil(reset)}s.` : ''}`
-        );
-      } else if (status === 401 || status === 403) {
-        createMessage(`Invalid or missing Pixabay API key.`);
-      } else if (status === 400) {
-        createMessage(`Bad request. Please, check your query and try again.`);
-      } else {
-        createMessage(`Something went wrong. Please, try again later.`);
-      }
-    })
+    .catch(handleError)
     .finally(() => {
       hideLoader();
       refs.searchBtn.disabled = false;
     });
 }
 
-// --------- helpers ----------
+function handleError(err) {
+  const status = err?.response?.status;
+
+  if (status === 429) {
+    const reset = Number(err.response?.headers?.['x-ratelimit-reset']);
+    createMessage(
+      `API rate limit exceeded.${Number.isFinite(reset) ? ` Try again in ~${Math.ceil(reset)}s.` : ''}`
+    );
+  } else if (status === 401 || status === 403) {
+    createMessage(`Invalid or missing Pixabay API key.`);
+  } else if (status === 400) {
+    createMessage(`Bad request. Please, check your query and try again.`);
+  } else {
+    createMessage(`Something went wrong. Please, try again later.`);
+  }
+
+  console.error('Pixabay error:', err);
+}
+
 function createMessage(message) {
   iziToast.show({
     class: 'error-svg',
