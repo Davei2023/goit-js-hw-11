@@ -1,23 +1,16 @@
-// src/main.js
-
-// Стили
+// стили
 import './css/styles.css';
 import 'izitoast/dist/css/iziToast.min.css';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
-// JS
+// js
 import iziToast from 'izitoast';
-import { getImagesByQuery /*, buildUrl*/ } from './js/pixabay-api';
-import {
-  createGallery,
-  clearGallery,
-  showLoader,
-  hideLoader,
-} from './js/render-functions';
-
+import { getImagesByQuery } from './js/pixabay-api';
+import { createGallery, clearGallery, showLoader, hideLoader } from './js/render-functions';
 
 const refs = {
-  form: document.querySelector('.search-form'),
+  form: document.querySelector('.form'),
+  input: document.querySelector('.form input[name="search-text"]'),
   gallery: document.querySelector('.gallery'),
   searchBtn: document.querySelector('.search-btn'),
 };
@@ -27,7 +20,7 @@ refs.form.addEventListener('submit', onSubmit);
 function onSubmit(e) {
   e.preventDefault();
 
-  const query = refs.form.elements.query.value.trim();
+  const query = refs.input.value.trim();
 
   if (!query) {
     createMessage(`The search field can't be empty! Please, enter your request!`);
@@ -42,8 +35,6 @@ function onSubmit(e) {
   showLoader();
   refs.searchBtn.disabled = true;
 
-  // console.log(buildUrl(query, { page: 1, perPage: 20, lang: 'en' }));
-
   getImagesByQuery(query, { page: 1, perPage: 20, lang: 'en' })
     .then(({ hits }) => {
       if (!Array.isArray(hits) || hits.length === 0) {
@@ -53,30 +44,13 @@ function onSubmit(e) {
       createGallery(hits, { replace: true });
       refs.form.reset();
     })
-    .catch(handleError)
+    .catch(() => {
+      createMessage(`Something went wrong. Please, try again later.`);
+    })
     .finally(() => {
       hideLoader();
       refs.searchBtn.disabled = false;
     });
-}
-
-function handleError(err) {
-  const status = err?.response?.status;
-
-  if (status === 429) {
-    const reset = Number(err.response?.headers?.['x-ratelimit-reset']);
-    createMessage(
-      `API rate limit exceeded.${Number.isFinite(reset) ? ` Try again in ~${Math.ceil(reset)}s.` : ''}`
-    );
-  } else if (status === 401 || status === 403) {
-    createMessage(`Invalid or missing Pixabay API key.`);
-  } else if (status === 400) {
-    createMessage(`Bad request. Please, check your query and try again.`);
-  } else {
-    createMessage(`Something went wrong. Please, try again later.`);
-  }
-
-  console.error('Pixabay error:', err);
 }
 
 function createMessage(message) {
